@@ -1,0 +1,150 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<script src="http://175.com/static/jquery/jquery.js"></script>
+<script src="http://175.com/static/bootstrap/js/bootstrap.js"></script>
+<script src="http://175.com/static/bootstrap-contextmenu/bootstrap-contextmenu.js"></script>
+<link href="http://175.com/static/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<script src="push-client-1.0.js"></script>
+<script src="vipim.js"></script>
+<script src="vipim.js"></script>
+
+
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <form class="form-inline" action="">
+                <label for="user">用户Id</label>
+                <input class="form-control" type="text" id="user" onkeypress="if(event.keyCode==13) {return login();}"></input>
+                <button class="btn btn-success" id="login">登录</button>
+            </form>
+        </div>
+        <div class="row col-sm-2" style="height:500px;">
+            <div class="row">
+                <a href="#" class="list-group-item un-changed" style="background-color: #0EA6D0">好友列表</a>
+            </div>
+            <div class="row buddy-list" style="height:208px; overflow:scroll">
+            </div>
+            <div class="row">
+                <a href="#" class="list-group-item un-changed" style="background-color: #0EA6D0">群列表</a>
+            </div>
+            <div class="row group-list" style="height:208px;overflow:scroll">
+            </div>
+        </div>
+        <div class="row col-sm-10" style="height:500px;">
+            <div style=" padding-left:15px;">
+                <textarea class="form-control" id="chat" cols="150" readonly rows="20"></textarea>
+            </div>
+            <br/>
+            <div style=" padding-left:15px;">
+                <textarea class="form-control" id="input" onkeypress="if(event.keyCode==13) {return sendMsg();}" cols="150" rows="2"></textarea>
+            </div>
+        </div>
+        <div class="row col-sm-12" id="context" data-toggle="context" data-target="#context-menu">
+            <textarea class="form-control" readonly id="log" onmousedown="if(event.button==2) {return clearLog();}" rows="5"></textarea>
+        </div>
+    </div>
+        
+    <!-- 右键 --!>
+    <div id="context-menu">
+        <ul class="dropdown-menu" role="menu">
+            <li><a tabindex="-1" href="#">Clear</a></li>
+        </ul>
+    </div>
+
+<script>
+    var chatCtx = {
+        chatType: null,    // 当前聊天类型0 好友，1 群
+        uid:      null,    // 当前聊天对象
+        gid:      null,    // 当前聊天的群
+    };
+
+    // 登录
+    function login() {
+        var uid = $("#user").val();
+        var pushId = "vip_app_im_" + uid;
+        vipim.init(uid, pushId, {
+            // 日志
+            log: function(level, msg) {
+                if (level < 1) return;
+                console.log(msg);
+                var id = "#log";
+                $(id).val($(id).val() + "\n" + msg);
+                $(id).scrollTop($(id)[0].scrollHeight);
+            },
+
+            onChatMsg:   onChatMsg,               // 消息回调
+
+            // 好友列表回调
+            onSyncBuddy: function(buddys) {
+                $(".buddy-list").html("");
+                for (var i = 0, l = buddys.length; i < l; ++i) {
+                    var bid = buddys[i];
+                    $(".buddy-list").append(
+                        "<a href='#' class='list-group-item' typ='0'>" + bid + "</a>");
+                }
+            },
+
+        });
+
+        chatCtx = {
+            chatType: null,    // 当前聊天类型0 好友，1 群
+            uid:      null,    // 当前聊天对象
+            gid:      null,    // 当前聊天的群
+        }
+        return false;
+    }
+
+    // 消息回调
+    function onChatMsg(msg) {
+
+    }
+
+    // 发送消息
+    function sendMsg() {
+        if (chatCtx.chatType == 0) { 
+            vipim.sendMsg(chatCtx.uid, 0, $("#input").val());
+        } else if (chatCtx.chatType == 1) {
+            vipim.sendMsg(chatCtx.gid, 1, $("#input").val());
+        } else {
+            alert("未选中好友或者群");
+        }
+        $("#input").val("");
+        return false;
+    }
+
+    $(document).ready(function() {
+        $("#login").bind("click", this, function(){
+            return login();
+        });
+
+        // 好友列表、群列表点击事件
+        $(".buddy-list, .group-list").delegate("a", "click", this, function(){
+            $(".buddy-list a, .group-list a").each(function(idx, item) {
+                $(item).removeClass("active");
+            });
+            $(this).addClass("active");
+
+            var typ = $(this).attr("typ");
+            if (typ == "0") {
+                // 好友
+                chatCtx.chatType = 0;
+                chatCtx.uid = $(this).text();
+            } else {
+                // 群
+                chatCtx.chatType = 1;
+                chatCtx.gid = $(this).text();
+            }
+        });
+
+        // 右键菜单
+        $('.context').contextmenu();
+        $(".dropdown-menu li a").click(function() {
+            $("#log").val("");
+            return true;
+        });
+    });
+</script>
+</body>
+</html>
